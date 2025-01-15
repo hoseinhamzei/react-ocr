@@ -9,7 +9,7 @@ function App() {
   return (
     <>
       <div>
-        <HandWriteInput onDetect={handleDetect} />
+        <HandWriteInput onDetect={handleDetect} lang={["eng"]} />
         <hr />
         <ImageInput onDetect={handleDetect} />
       </div>

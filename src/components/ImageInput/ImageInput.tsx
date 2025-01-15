@@ -1,12 +1,15 @@
 import React, { useRef } from 'react';
-import Tesseract from 'tesseract.js';
+import { Lang, OEM, PSM, createWorker } from 'tesseract.js';
+import { preProcessImage } from '../../utils/utils';
 
 interface ImageInputProps {
   onDetect: (detectedText: string) => void;
   onFile?: (file: File) => void;
-  lang?: string;
+  lang?: string | string[] | Lang[];
   className?: string;
   style?: React.CSSProperties;
+  pageSegMode?: PSM.AUTO
+  hint?: string
 }
 
 const ImageInput: React.FC<ImageInputProps> = ({
@@ -15,44 +18,52 @@ const ImageInput: React.FC<ImageInputProps> = ({
   lang = 'eng',
   className,
   style,
+  pageSegMode = PSM.AUTO,
+  hint = "Drag & Drop an image here or click to select a file"
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const tesseractWorker = createWorker(lang, OEM.LSTM_ONLY);
+
+  const performOCR = (file: File | undefined) => {
     if (file) {
       if (onFile) onFile(file);
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
         if (reader.result) {
-          Tesseract.recognize(reader.result as string, lang)
-            .then(({ data: { text } }) => {
-              onDetect(text);
-            })
-            .catch((error) => console.error('Tesseract error:', error));
+
+          const blob = await preProcessImage(reader.result as string);
+
+          if (blob) {
+            try {
+              const ocr = await tesseractWorker;
+              ocr.setParameters({
+                tessedit_pageseg_mode: pageSegMode,
+              });
+
+              const detected = ocr.recognize(blob);
+              if (detected) {
+                onDetect((await detected).data.text.trim());
+              }
+            } catch (err) {
+              console.error("Tesseract OCR Error:", err);
+            }
+          }
         }
       };
       reader.readAsDataURL(file);
     }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    performOCR(file);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    if (file) {
-      if (onFile) onFile(file);
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (reader.result) {
-          Tesseract.recognize(reader.result as string, lang)
-            .then(({ data: { text } }) => {
-              onDetect(text);
-            })
-            .catch((error) => console.error('Tesseract error:', error));
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    performOCR(file);
   };
 
   const handleClick = () => {
@@ -63,19 +74,13 @@ const ImageInput: React.FC<ImageInputProps> = ({
 
   return (
     <div
-      className={className}
-      style={{
-        ...style,
-        border: '2px dashed #ccc',
-        padding: '20px',
-        textAlign: 'center',
-        cursor: 'pointer',
-      }}
+      className={`image-input ${className}`}
+      style={style}
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
       onClick={handleClick}
     >
-      Drag & Drop an image here or click to select a file
+      {hint}
       <input
         ref={fileInputRef}
         type="file"

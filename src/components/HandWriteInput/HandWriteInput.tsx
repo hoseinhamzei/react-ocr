@@ -1,14 +1,16 @@
 import React, { useRef, useEffect, useState } from 'react';
-import Tesseract from 'tesseract.js';
+import { createWorker, Lang, OEM, PSM } from 'tesseract.js';
+import { preProcessCanvas } from '../../utils/utils';
 
 interface HandWriteInputProps {
   maxWidth?: number;
   height?: number;
   timeout?: number;
-  lang?: string;
+  lang?: string | string[] | Lang[];
   onDetect: (detectedText: string) => void;
   className?: string;
   style?: React.CSSProperties;
+  pageSegMode?: PSM;
 }
 
 const HandWriteInput: React.FC<HandWriteInputProps> = ({
@@ -18,12 +20,16 @@ const HandWriteInput: React.FC<HandWriteInputProps> = ({
   lang = 'eng',
   onDetect,
   className,
+  pageSegMode = PSM.SINGLE_LINE,
   style,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [isDrawing, setIsDrawing] = useState(false);
   const [image, setImage] = useState<string | null>(null);
+
+  const tesseractWorker = createWorker(lang, OEM.LSTM_ONLY);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -91,25 +97,33 @@ const HandWriteInput: React.FC<HandWriteInputProps> = ({
     setImage(null);
   };
 
-  const detectText = () => {
+  const detectText = async () => {
     const canvas = canvasRef.current;
     if (canvas) {
-      canvas.toBlob((blob) => {
-        if (blob) {
-          Tesseract.recognize(blob, lang)
-            .then(({ data: { text } }) => {
-              onDetect(text);
-            })
-            .catch((error) => console.error('Tesseract error:', error));
+      const blob = preProcessCanvas(canvas);
+      if (blob) {
+        try {
+          const ocr = await tesseractWorker;
+          ocr.setParameters({
+            tessedit_pageseg_mode: pageSegMode,
+          });
+
+          const detected = ocr.recognize(blob);
+          if (detected) {
+            onDetect((await detected).data.text.trim());
+          }
+        } catch (err) {
+          console.error("Tesseract OCR Error:", err);
         }
-      });
+      }
+
     }
   };
 
   return (
     <div
-      className={className}
-      style={{ width: maxWidth, height, border: '1px solid #ccc', ...style }}
+      className={`handwrite-input ${className}`}
+      style={{ width: maxWidth, height, ...style }}
     >
       <canvas
         ref={canvasRef}

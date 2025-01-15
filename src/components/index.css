@@ -1,0 +1,10 @@
+.handwrite-input {
+    border: 1px solid #ccc;
+}
+
+.image-input{
+    border: 2px dashed #ccc;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+}
