@@ -1,3 +1,5 @@
+import { createWorker, Lang, OEM } from "tesseract.js";
+
 function preProcessCanvas(canvas: HTMLCanvasElement): Blob | undefined {
     if (!canvas) return;
     // preprocess the canvas image for better OCR results
@@ -23,7 +25,7 @@ function preProcessCanvas(canvas: HTMLCanvasElement): Blob | undefined {
             preprocessedContext.putImageData(grayData, 0, 0);
 
             // Convert to blob for Tesseract
-            preprocessedCanvas.toBlob(async (blob) => {
+            preprocessedCanvas.toBlob((blob) => {
                 return blob;
             });
         }
@@ -81,4 +83,9 @@ function preProcessImage(result: string): Promise<Blob> {
     });
 }
 
-export { preProcessCanvas, preProcessImage };
+function initTesseractWorker(lang: string | string[] | Lang[]) {
+    const worker = createWorker(lang, OEM.TESSERACT_LSTM_COMBINED);
+    return worker;
+}
+
+export { preProcessCanvas, preProcessImage, initTesseractWorker };

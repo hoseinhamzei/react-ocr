@@ -2,9 +2,16 @@
     border: 1px solid #ccc;
 }
 
-.image-input{
+.image-input {
     border: 2px dashed #ccc;
     padding: 20px;
     text-align: center;
     cursor: pointer;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
 }

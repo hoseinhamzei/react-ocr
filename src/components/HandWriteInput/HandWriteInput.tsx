@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { createWorker, Lang, OEM, PSM } from 'tesseract.js';
-import { preProcessCanvas } from '../../utils/utils';
+import { Lang, OEM, PSM } from 'tesseract.js';
+import { initTesseractWorker, preProcessCanvas } from '../../utils/utils';
 
 interface HandWriteInputProps {
   maxWidth?: number;
@@ -25,11 +25,16 @@ const HandWriteInput: React.FC<HandWriteInputProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const workerRef = useRef<Promise<Tesseract.Worker> | null>(null);
 
   const [isDrawing, setIsDrawing] = useState(false);
-  const [image, setImage] = useState<string | null>(null);
 
-  const tesseractWorker = createWorker(lang, OEM.LSTM_ONLY);
+  // prevent recreation of the worker in every rerender
+  if (!workerRef.current) {
+    workerRef.current = initTesseractWorker(lang);
+  }
+  const tesseractWorker = workerRef.current;
+  console.log("rerender test");
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -39,21 +44,6 @@ const HandWriteInput: React.FC<HandWriteInputProps> = ({
     }
   }, [maxWidth, height]);
 
-  useEffect(() => {
-    if (image) {
-      const imageElement = document.createElement('img');
-      imageElement.src = image;
-      imageElement.onload = () => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(imageElement, 0, 0);
-          }
-        }
-      };
-    }
-  }, [image]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDrawing(true);
@@ -94,28 +84,34 @@ const HandWriteInput: React.FC<HandWriteInputProps> = ({
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
     }
-    setImage(null);
   };
 
   const detectText = async () => {
     const canvas = canvasRef.current;
     if (canvas) {
-      const blob = preProcessCanvas(canvas);
-      if (blob) {
-        try {
-          const ocr = await tesseractWorker;
-          ocr.setParameters({
-            tessedit_pageseg_mode: pageSegMode,
-          });
 
-          const detected = ocr.recognize(blob);
-          if (detected) {
-            onDetect((await detected).data.text.trim());
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          try {
+            const ocr = await tesseractWorker;
+            ocr.setParameters({
+              tessedit_pageseg_mode: pageSegMode,
+            });
+
+            const detected = await ocr.recognize(blob);
+            handleClear();
+            if (detected) {
+              onDetect((detected).data.text.trim());
+            } else {
+              console.log("No text detected");
+            }
+          } catch (err) {
+            console.error("Tesseract OCR Error:", err);
+            handleClear();
           }
-        } catch (err) {
-          console.error("Tesseract OCR Error:", err);
         }
-      }
+      });
+
 
     }
   };
@@ -130,12 +126,7 @@ const HandWriteInput: React.FC<HandWriteInputProps> = ({
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        style={{ display: 'block', width: '100%', height: '100%', cursor: 'crosshair' }}
       ></canvas>
-      <button onClick={handleClear} style={{ marginTop: '10px' }}>
-        Clear
-      </button>
-      {image && <img src={image} alt="handwriting" style={{ marginTop: '10px' }} />}
     </div>
   );
 };

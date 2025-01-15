@@ -41,9 +41,9 @@ const ImageInput: React.FC<ImageInputProps> = ({
                 tessedit_pageseg_mode: pageSegMode,
               });
 
-              const detected = ocr.recognize(blob);
+              const detected = await ocr.recognize(blob);
               if (detected) {
-                onDetect((await detected).data.text.trim());
+                onDetect((detected).data.text.trim());
               }
             } catch (err) {
               console.error("Tesseract OCR Error:", err);
@@ -51,7 +51,6 @@ const ImageInput: React.FC<ImageInputProps> = ({
           }
         }
       };
-      reader.readAsDataURL(file);
     }
   }
 
