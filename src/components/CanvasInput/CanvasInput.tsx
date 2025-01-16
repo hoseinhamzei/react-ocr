@@ -103,31 +103,33 @@ const CanvasInput: React.FC<CanvasInputProps> = ({
     const canvas = canvasRef.current;
 
     if (canvas) {
-      const blob = await preProcessCanvas(canvas);
 
-      if (blob) {
-        try {
-          const ocr = await tesseractWorker;
-
-          const ocrConfig: Partial<Tesseract.WorkerParams> = {
-            tessedit_pageseg_mode: pageSegMode,
-            tessedit_char_blacklist: handWriteBlackList.join(),
-          };
-
-          ocr.setParameters(ocrConfig);
-
-          const detected = await ocr.recognize(blob);
-          handleClear();
-          if (detected) {
-            onDetect(detected.data.text.trim());
-          } else {
-            console.log("No text detected");
+      canvas.toBlob(async (blob)=>{
+        if (blob) {
+          try {
+            const ocr = await tesseractWorker;
+  
+            const ocrConfig: Partial<Tesseract.WorkerParams> = {
+              tessedit_pageseg_mode: pageSegMode,
+              tessedit_char_blacklist: handWriteBlackList.join(),
+            };
+  
+            ocr.setParameters(ocrConfig);
+  
+            const detected = await ocr.recognize(blob);
+            handleClear();
+            if (detected) {
+              onDetect(detected.data.text.trim());
+            } else {
+              console.log("No text detected");
+            }
+          } catch (err) {
+            console.error("Tesseract OCR Error:", err);
+            handleClear();
           }
-        } catch (err) {
-          console.error("Tesseract OCR Error:", err);
-          handleClear();
         }
-      }
+      })
+      
     }
   };
 

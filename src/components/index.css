@@ -4,6 +4,7 @@
     text-align: center;
     cursor: pointer;
     width: 100%;
+    position: relative;
 }
 
 .image-input-input{
@@ -22,7 +23,7 @@
     cursor: crosshair;
 }
 
-.canvas-input-loading{
+[class$="-input-loading"] {
     position: absolute;
     left: 0;
     top: 0;

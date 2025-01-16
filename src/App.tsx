@@ -6,6 +6,7 @@ function App() {
   const [detected, setDetected] = useState<string | null>(null);
 
   function handleDetect(detectedText: string) {
+    console.log(detectedText);
     setDetected(detectedText);
   }
 
