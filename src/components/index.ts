@@ -1,6 +1,6 @@
 import "./index.css";
 
-import HandWriteInput from "./HandWriteInput/HandWriteInput";
+import CanvasInput from "./CanvasInput/CanvasInput";
 import ImageInput from "./ImageInput/ImageInput";
 
-export { HandWriteInput, ImageInput };
+export { CanvasInput, ImageInput };

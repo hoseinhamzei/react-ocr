@@ -1,7 +1,7 @@
 {
-  "name": "react-handwrite-input",
+  "name": "react-ocr-input",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,12 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@types/node": "^22.10.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tesseract.js": "^6.0.0"
   },
   "devDependencies": {
+    "@types/node": "^22.10.5",
     "@eslint/js": "^9.17.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",

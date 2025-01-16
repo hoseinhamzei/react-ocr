@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
-import { Lang, OEM, PSM, createWorker } from 'tesseract.js';
-import { preProcessImage } from '../../utils/utils';
+import React, { useRef } from "react";
+import { Lang, OEM, PSM, createWorker } from "tesseract.js";
+import { initTesseractWorker, preProcessImage } from "../../utils/utils";
 
 interface ImageInputProps {
   onDetect: (detectedText: string) => void;
@@ -8,22 +8,31 @@ interface ImageInputProps {
   lang?: string | string[] | Lang[];
   className?: string;
   style?: React.CSSProperties;
-  pageSegMode?: PSM.AUTO
-  hint?: string
+  pageSegMode?: PSM;
+  hint?: string;
+  maxWidth?: string;
 }
 
 const ImageInput: React.FC<ImageInputProps> = ({
   onDetect,
   onFile,
-  lang = 'eng',
+  lang = "eng",
   className,
   style,
   pageSegMode = PSM.AUTO,
-  hint = "Drag & Drop an image here or click to select a file"
+  hint = "Drag & Drop an image here or click to select a file",
+  maxWidth = "400px"
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const workerRef = useRef<Promise<Tesseract.Worker> | null>(null);
 
-  const tesseractWorker = createWorker(lang, OEM.LSTM_ONLY);
+  if (!workerRef.current) {
+    workerRef.current = initTesseractWorker(lang);
+  }
+
+  const tesseractWorker = workerRef.current;
+
+  //
 
   const performOCR = (file: File | undefined) => {
     if (file) {
@@ -31,7 +40,6 @@ const ImageInput: React.FC<ImageInputProps> = ({
       const reader = new FileReader();
       reader.onload = async () => {
         if (reader.result) {
-
           const blob = await preProcessImage(reader.result as string);
 
           if (blob) {
@@ -43,7 +51,7 @@ const ImageInput: React.FC<ImageInputProps> = ({
 
               const detected = await ocr.recognize(blob);
               if (detected) {
-                onDetect((detected).data.text.trim());
+                onDetect(detected.data.text.trim());
               }
             } catch (err) {
               console.error("Tesseract OCR Error:", err);
@@ -52,7 +60,7 @@ const ImageInput: React.FC<ImageInputProps> = ({
         }
       };
     }
-  }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -74,7 +82,7 @@ const ImageInput: React.FC<ImageInputProps> = ({
   return (
     <div
       className={`image-input ${className}`}
-      style={style}
+      style={{maxWidth:maxWidth, ...style}}
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
       onClick={handleClick}
@@ -85,7 +93,7 @@ const ImageInput: React.FC<ImageInputProps> = ({
         type="file"
         accept="image/*"
         onChange={handleFileChange}
-        style={{ display: 'none' }}
+        className="image-input-input"
       />
     </div>
   );
