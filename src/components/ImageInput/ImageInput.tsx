@@ -1,14 +1,16 @@
 import React, { ReactElement, useRef, useState } from "react";
-import { Lang, PSM } from "tesseract.js";
-import { initTesseractWorker, preProcessImage } from "../../utils/utils";
+import { createWorker, OEM, PSM } from "tesseract.js";
+import { preProcessImage } from "../../utils/utils";
+import { LangCode, LanguageCodes } from "../../types/types";
 
 interface ImageInputProps {
   onDetect: (detectedText: string) => void;
   onFile?: (file: File) => void;
-  lang?: string | string[] | Lang[];
+  lang?: LangCode | LangCode[]
   className?: string;
   style?: React.CSSProperties;
   pageSegMode?: PSM;
+  OCRMode?: OEM;
   hint?: string;
   maxWidth?: string;
   loadingContent?: ReactElement
@@ -17,10 +19,11 @@ interface ImageInputProps {
 const ImageInput: React.FC<ImageInputProps> = ({
   onDetect,
   onFile,
-  lang = "eng",
+  lang = LanguageCodes.English,
   className,
   style,
   pageSegMode = PSM.AUTO,
+  OCRMode = OEM.TESSERACT_LSTM_COMBINED,
   hint = "Drag & Drop an image here or click to select a file",
   maxWidth = "400px",
   loadingContent
@@ -30,7 +33,7 @@ const ImageInput: React.FC<ImageInputProps> = ({
   const [loading, setLoading] = useState(false);
 
   if (!workerRef.current) {
-    workerRef.current = initTesseractWorker(lang);
+    workerRef.current = createWorker(lang, OCRMode);
   }
 
   const tesseractWorker = workerRef.current;

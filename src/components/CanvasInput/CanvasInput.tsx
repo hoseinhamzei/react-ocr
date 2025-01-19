@@ -1,20 +1,18 @@
 import React, { useRef, useEffect, useState, ReactElement } from "react";
-import { Lang, PSM } from "tesseract.js";
-import {
-  handWriteBlackList,
-  initTesseractWorker,
-  preProcessCanvas,
-} from "../../utils/utils";
+import { createWorker, OEM, PSM } from "tesseract.js";
+import { LangCode, LanguageCodes } from "../../types/types";
+import { handWriteBlackList } from "../../utils/constants";
 
 interface CanvasInputProps {
   maxWidth?: number;
   height?: number;
   timeout?: number;
-  lang?: string | string[] | Lang[];
+  lang?: LangCode | LangCode[];
   onDetect: (detectedText: string) => void;
   className?: string;
   style?: React.CSSProperties;
   pageSegMode?: PSM;
+  OCRMode?: OEM;
   loadingContent?: ReactElement;
 }
 
@@ -22,10 +20,11 @@ const CanvasInput: React.FC<CanvasInputProps> = ({
   maxWidth = 400,
   height = 300,
   timeout = 3,
-  lang = "eng",
+  lang = LanguageCodes.English,
   onDetect,
   className,
   pageSegMode = PSM.AUTO,
+  OCRMode = OEM.TESSERACT_LSTM_COMBINED,
   style,
   loadingContent,
 }) => {
@@ -38,7 +37,7 @@ const CanvasInput: React.FC<CanvasInputProps> = ({
 
   // prevent recreation of the worker in every rerender
   if (!workerRef.current) {
-    workerRef.current = initTesseractWorker(lang);
+    workerRef.current = createWorker(lang, OCRMode);
   }
   const tesseractWorker = workerRef.current;
 

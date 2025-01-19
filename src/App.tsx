@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CanvasInput, ImageInput } from "./components";
 import "./assets/style.css";
+import { LanguageCodes } from "./types/types";
 
 function App() {
   const [detected, setDetected] = useState<string | null>(null);
@@ -10,6 +11,8 @@ function App() {
     setDetected(detectedText);
   }
 
+  const { English } = LanguageCodes;
+
   return (
     <>
       <header>
@@ -18,12 +21,12 @@ function App() {
 
       <main>
         <h4>Canvas Input:</h4>
-        <CanvasInput onDetect={handleDetect} />
+        <CanvasInput onDetect={handleDetect} lang={English} />
         <br />
         <hr />
         <br />
         <h4>Drag and Drop Image File Input:</h4>
-        <ImageInput onDetect={handleDetect} />
+        <ImageInput onDetect={handleDetect} lang={English} />
         <hr />
 
         <h4>Detected:</h4>

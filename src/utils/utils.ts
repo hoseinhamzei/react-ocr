@@ -1,4 +1,5 @@
 import { createWorker, Lang, OEM } from "tesseract.js";
+import { LangCode } from "../types/types";
 
 function preProcessImage(result: string): Promise<Blob> {
     return new Promise((resolve, reject) => {
@@ -49,15 +50,4 @@ function preProcessImage(result: string): Promise<Blob> {
     });
 }
 
-function initTesseractWorker(lang: string | string[] | Lang[]) {
-    const worker = createWorker(lang, OEM.TESSERACT_LSTM_COMBINED);
-    return worker;
-}
-
-const handWriteBlackList = [
-    '!', '"', '#', '$', '%', '&', "'", '(', ')', '*', '+', ',', '-', '.', '/',
-    ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']', '^', '_', '`', '{', '|', '}', '~',
-    '•', '€', '£', '¥', '©', '™', '®', '✔', '✖', '✓', '∞', '±', '°', '§', '¶', '♪', '♫'
-];
-
-export { preProcessImage, initTesseractWorker, handWriteBlackList };
+export { preProcessImage };
