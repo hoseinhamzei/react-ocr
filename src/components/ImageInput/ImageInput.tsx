@@ -1,4 +1,4 @@
-import React, { ReactElement, useRef, useState } from "react";
+import React, { ReactElement, useRef, useState, useTransition } from "react";
 import { createWorker, OEM, PSM } from "tesseract.js";
 import { preProcessImage } from "../../utils/utils";
 import { LangCode, LanguageCodes } from "../../types/types";
@@ -6,14 +6,14 @@ import { LangCode, LanguageCodes } from "../../types/types";
 interface ImageInputProps {
   onDetect: (detectedText: string) => void;
   onFile?: (file: File) => void;
-  lang?: LangCode | LangCode[]
+  lang?: LangCode | LangCode[];
   className?: string;
   style?: React.CSSProperties;
   pageSegMode?: PSM;
   OCRMode?: OEM;
   hint?: string;
   maxWidth?: string;
-  loadingContent?: ReactElement
+  loadingContent?: ReactElement;
 }
 
 const ImageInput: React.FC<ImageInputProps> = ({
@@ -26,11 +26,11 @@ const ImageInput: React.FC<ImageInputProps> = ({
   OCRMode = OEM.TESSERACT_LSTM_COMBINED,
   hint = "Drag & Drop an image here or click to select a file",
   maxWidth = "400px",
-  loadingContent
+  loadingContent,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const workerRef = useRef<Promise<Tesseract.Worker> | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isPending, startOCRTransition] = useTransition();
 
   if (!workerRef.current) {
     workerRef.current = createWorker(lang, OCRMode);
@@ -42,40 +42,38 @@ const ImageInput: React.FC<ImageInputProps> = ({
 
   const performOCR = (file: File | undefined) => {
     if (file) {
-      if (onFile) onFile(file);
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
+      // demanding operation, trat as transition
+      startOCRTransition(() => {
+        if (onFile) onFile(file);
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
 
-      reader.onload = async () => {
-        if (reader.result) {
-          setLoading(true);
-          const blob = await preProcessImage(reader.result as string);
+        reader.onload = async () => {
+          if (reader.result) {
+            const blob = await preProcessImage(reader.result as string);
 
-          if (blob) {
-            try {
-              const ocr = await tesseractWorker;
-              ocr.setParameters({
-                tessedit_pageseg_mode: pageSegMode,
-              });
+            if (blob) {
+              try {
+                const ocr = await tesseractWorker;
+                ocr.setParameters({
+                  tessedit_pageseg_mode: pageSegMode,
+                });
 
-              const detected = await ocr.recognize(blob);
-              setLoading(false);
-              if (detected) {
-                onDetect(detected.data.text.trim());
+                const detected = await ocr.recognize(blob);
+                if (detected) {
+                  onDetect(detected.data.text.trim());
+                }
+              } catch (err) {
+                console.error("Tesseract OCR Error:", err);
               }
-            } catch (err) {
-              console.error("Tesseract OCR Error:", err);
-              setLoading(false);
             }
-          } else {
-            setLoading(false);
           }
-        }
-      };
+        };
 
-      reader.onerror = () => {
-        console.error("Error reading file");
-      };
+        reader.onerror = () => {
+          console.error("Error reading file");
+        };
+      });
     }
   };
 
@@ -112,7 +110,7 @@ const ImageInput: React.FC<ImageInputProps> = ({
         onChange={handleFileChange}
         className="image-input-input"
       />
-      {loading && (
+      {isPending && (
         <div className="image-input-loading">
           {loadingContent || "Please Wait..."}
         </div>

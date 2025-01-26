@@ -1,4 +1,10 @@
-import React, { useRef, useEffect, useState, ReactElement } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  ReactElement,
+  useTransition,
+} from "react";
 import { createWorker, OEM, PSM } from "tesseract.js";
 import { LangCode, LanguageCodes } from "../../types/types";
 import { handWriteBlackList } from "../../utils/constants";
@@ -31,14 +37,15 @@ const CanvasInput: React.FC<CanvasInputProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const workerRef = useRef<Promise<Tesseract.Worker> | null>(null);
+  const [isPending, startOCRTransition] = useTransition();
   //
   const [isDrawing, setIsDrawing] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // prevent recreation of the worker in every rerender
-  if (!workerRef.current) {
+
     workerRef.current = createWorker(lang, OCRMode);
-  }
+
   const tesseractWorker = workerRef.current;
 
   useEffect(() => {
@@ -55,13 +62,13 @@ const CanvasInput: React.FC<CanvasInputProps> = ({
     setIsDrawing(true);
     const canvas = canvasRef.current;
     if (canvas) {
-      const ctx = canvas.getContext("2d", {willReadFrequently: true});
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (ctx) {
         ctx.beginPath();
         ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
         ctx.lineWidth = 2.5;
-        ctx.strokeStyle = 'black';
-        ctx.lineCap = 'round';
+        ctx.strokeStyle = "black";
+        ctx.lineCap = "round";
       }
     }
   };
@@ -70,7 +77,7 @@ const CanvasInput: React.FC<CanvasInputProps> = ({
     if (!isDrawing) return;
     const canvas = canvasRef.current;
     if (canvas) {
-      const ctx = canvas.getContext("2d", {willReadFrequently: true});
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (ctx) {
         ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
         ctx.stroke();
@@ -88,7 +95,7 @@ const CanvasInput: React.FC<CanvasInputProps> = ({
   const handleClear = () => {
     const canvas = canvasRef.current;
     if (canvas) {
-      const ctx = canvas.getContext("2d", {willReadFrequently: true});
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
@@ -102,33 +109,34 @@ const CanvasInput: React.FC<CanvasInputProps> = ({
     const canvas = canvasRef.current;
 
     if (canvas) {
+      // demanding operation, treat as transition
+      startOCRTransition(() => {
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            try {
+              const ocr = await tesseractWorker;
 
-      canvas.toBlob(async (blob)=>{
-        if (blob) {
-          try {
-            const ocr = await tesseractWorker;
-  
-            const ocrConfig: Partial<Tesseract.WorkerParams> = {
-              tessedit_pageseg_mode: pageSegMode,
-              tessedit_char_blacklist: handWriteBlackList.join(),
-            };
-  
-            ocr.setParameters(ocrConfig);
-  
-            const detected = await ocr.recognize(blob);
-            handleClear();
-            if (detected) {
-              onDetect(detected.data.text.trim());
-            } else {
-              console.log("No text detected");
+              const ocrConfig: Partial<Tesseract.WorkerParams> = {
+                tessedit_pageseg_mode: pageSegMode,
+                tessedit_char_blacklist: handWriteBlackList.join(),
+              };
+
+              ocr.setParameters(ocrConfig);
+
+              const detected = await ocr.recognize(blob);
+              handleClear();
+              if (detected) {
+                onDetect(detected.data.text.trim());
+              } else {
+                console.log("No text detected");
+              }
+            } catch (err) {
+              console.error("Tesseract OCR Error:", err);
+              handleClear();
             }
-          } catch (err) {
-            console.error("Tesseract OCR Error:", err);
-            handleClear();
           }
-        }
-      })
-      
+        });
+      });
     }
   };
 
@@ -146,7 +154,7 @@ const CanvasInput: React.FC<CanvasInputProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
       ></canvas>
-      {loading && (
+      {(loading || isPending) && (
         <div className="canvas-input-loading">
           {loadingContent || "Please Wait..."}
         </div>
