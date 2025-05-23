@@ -1,52 +1,58 @@
-import { createWorker, Lang, OEM } from "tesseract.js";
-import { LangCode } from "../types/types";
-
-function preProcessImage(result: string): Promise<Blob> {
+function preProcessImage(input: HTMLCanvasElement | string): Promise<Blob> {
     return new Promise((resolve, reject) => {
-
-        const img = new Image();
-        img.src = result;
-
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-
+        const processCanvas = (canvasToProcess: HTMLCanvasElement) => {
+            const ctx = canvasToProcess.getContext('2d');
             if (!ctx) {
                 reject(new Error('Could not get canvas context'));
                 return;
             }
 
-            canvas.width = img.width;
-            canvas.height = img.height;
-
-            // draw the image on the canvas
-            ctx.drawImage(img, 0, 0);
-
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvasToProcess.width, canvasToProcess.height);
             const data = imageData.data;
 
-            // convert to grayscale
+            // Convert to grayscale and apply binarization
             for (let i = 0; i < data.length; i += 4) {
                 const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                data[i] = avg;     // Red
-                data[i + 1] = avg; // Green
-                data[i + 2] = avg; // Blue
+                const threshold = 127;
+                const binaryColor = avg > threshold ? 255 : 0;
+                data[i] = binaryColor;     // Red
+                data[i + 1] = binaryColor; // Green
+                data[i + 2] = binaryColor; // Blue
             }
 
             ctx.putImageData(imageData, 0, 0);
 
-            canvas.toBlob(blob => {
+            canvasToProcess.toBlob(blob => {
                 if (blob) {
                     resolve(blob);
                 } else {
                     reject(new Error("Error converting to blob"));
                 }
-            })
+            });
         };
 
-        img.onerror = (error) => {
-            reject(new Error('Error loading image: ' + error));
-        };
+        if (typeof input === 'string') {
+            const img = new Image();
+            img.src = input;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    reject(new Error('Could not get canvas context for image loading'));
+                    return;
+                }
+                ctx.drawImage(img, 0, 0);
+                processCanvas(canvas);
+            };
+            img.onerror = (error) => {
+                reject(new Error('Error loading image: ' + error));
+            };
+        } else {
+            // Input is already an HTMLCanvasElement
+            processCanvas(input);
+        }
     });
 }
 
