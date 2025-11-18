@@ -104,3 +104,5 @@ export const LanguageCodes = {
 } as const;
 
 export type LangCode = typeof LanguageCodes[keyof typeof LanguageCodes];
+
+export type OCRService = 'tesseract' | 'googleVision';
