@@ -6,7 +6,7 @@ _(Note: Badges are placeholders)_
 
 ## Description
 
-`react-ocr-input` is a React library that provides versatile components for Optical Character Recognition (OCR). It includes `CanvasInput` for capturing handwritten text and `ImageInput` for processing text from image files. Both components offer flexibility by supporting Tesseract.js (for client-side processing) and Google Cloud Vision API (for server-side, high-accuracy OCR).
+`react-ocr-input` is a React library that provides components for Optical Character Recognition (OCR). It includes `CanvasInput` for capturing handwritten text and `ImageInput` for processing text from image files. these components supports both client side processing with Tesseract.js and AI server side processing with Google Cloud Vision API.
 
 ### Key Features
 
@@ -73,7 +73,7 @@ function App() {
     <CanvasInput
       onDetect={handleDetect}
       ocrService="googleVision"
-      googleVisionApiKey="YOUR_GOOGLE_VISION_API_KEY"
+      googleVisionApiKey="GOOGLE_VISION_API_KEY"
     />
   );
 }
@@ -190,55 +190,6 @@ To use the `'googleVision'` OCR service, you need:
 Provide this API key to the `googleVisionApiKey` prop in the `CanvasInput` or `ImageInput` components.
 
 For detailed instructions on setting up the Vision API and generating an API key, please refer to the [official Google Cloud Vision API documentation](https://cloud.google.com/vision/docs/setup).
-
-## Development & Contributing
-
-### Local Setup
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/yourusername/react-ocr-input.git
-    cd react-ocr-input
-    ```
-2.  **Install dependencies:**
-    ```bash
-    npm install
-    # or
-    yarn install
-    ```
-
-### Running Tests
-
-Currently, the `package.json` does not have a dedicated `test` script. You can run Jest directly or add a script:
-
-*   **To run Jest directly (if installed globally or via npx):**
-    ```bash
-    npx jest
-    ```
-*   **Consider adding a `test` script to your `package.json`:**
-    ```json
-    "scripts": {
-      // ... other scripts
-      "test": "jest"
-    }
-    ```
-    Then run:
-    ```bash
-    npm test
-    # or
-    yarn test
-    ```
-
-### Contribution Guidelines
-
-We welcome contributions! If you'd like to improve `react-ocr-input`:
-
-1.  **Fork** the repository.
-2.  Create a new **branch** for your feature or bug fix (e.g., `feature/new-ocr-parameter` or `fix/canvas-rendering-issue`).
-3.  Make your **changes**.
-4.  **Add tests** for your changes to ensure they work as expected and don't break existing functionality.
-5.  Ensure all tests pass.
-6.  Submit a **pull request** with a clear description of your changes.
 
 ## License
 
