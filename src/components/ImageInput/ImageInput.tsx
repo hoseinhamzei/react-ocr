@@ -1,142 +1,156 @@
-import React, { ReactElement, useRef, useTransition } from "react"; // Removed useState as isPending handles loading state
-import { createWorker, OEM, PSM, Worker } from "tesseract.js"; // Added Worker type
-import { preProcessImage } from "../../utils/utils";
-import { LangCode, LanguageCodes, OCRService } from "../../types/types";
-import { performGoogleVisionOCR } from "../../utils/googleVisionApi";
+import React, { ReactElement, useRef, useEffect } from "react";
+import { OEM, PSM } from "tesseract.js";
+import { useOCR } from "../../hooks/useOCR";
+import {
+  OCRService,
+  TesseractLangCode,
+  TesseractLanguageCodes,
+} from "../../types/types";
 
-interface ImageInputProps {
+/**
+ * Props for the ImageInput component
+ * @typedef {Object} ImageInputProps
+ * @property {(detectedText: string) => void} onDetect - Callback function called when text is detected from the image
+ * @property {() => void} [onStartDetecting] - Optional callback function called when OCR detection starts
+ * @property {(file: File) => void} [onFile] - Optional callback function called when a file is selected
+ * @property {string} [className=""] - Additional CSS class names for the container
+ * @property {React.CSSProperties} [style] - Inline styles for the container
+ * @property {OCRService} [ocrService="tesseract"] - OCR service to use ("tesseract" or "groq")
+ * @property {TesseractLangCode | TesseractLangCode[]} [lang=TesseractLanguageCodes.English] - Language or languages for OCR
+ * @property {PSM} [pageSegMode=PSM.AUTO] - Tesseract page segmentation mode
+ * @property {OEM} [OCRMode=OEM.TESSERACT_LSTM_COMBINED] - Tesseract OCR engine mode
+ * @property {string} [hint="Drag & Drop an image here or click to select a file"] - Hint text displayed in the drop zone
+ * @property {string} [maxWidth="400px"] - Maximum width of the component (CSS value)
+ * @property {ReactElement} [loadingContent] - Custom loading indicator content
+ * @property {string} [groqApiKey] - API key for Groq service if using groq as ocrService
+ */
+export interface ImageInputProps {
   onDetect: (detectedText: string) => void;
   onFile?: (file: File) => void;
-  lang?: LangCode | LangCode[];
+  onError?: (error: Error) => void;
+  onStartDetecting?: () => void;
   className?: string;
   style?: React.CSSProperties;
+  ocrService?: OCRService;
+  lang?: TesseractLangCode | TesseractLangCode[];
   pageSegMode?: PSM;
   OCRMode?: OEM;
   hint?: string;
   maxWidth?: string;
   loadingContent?: ReactElement;
-  ocrService?: OCRService;
-  googleVisionApiKey?: string;
+  groqApiKey?: string;
 }
 
+const DEFAULT_TESSERACT_LANG = TesseractLanguageCodes.English;
+
+/**
+ * ImageInput Component
+ *
+ * A React component that provides an image-based OCR input interface.
+ * Users can upload images via drag-and-drop or file selection, and the
+ * text in the images is extracted using OCR (Optical Character Recognition).
+ *
+ * @component
+ * @param {ImageInputProps} props - The component props
+ * @returns {ReactElement} The rendered image input component
+ *
+ * @example
+ * // Basic usage
+ * <ImageInput
+ *   onDetect={(text) => console.log('Detected:', text)}
+ * />
+ *
+ * @example
+ * // With Groq service and custom callbacks
+ * <ImageInput
+ *   onDetect={(text) => setDetectedText(text)}
+ *   onFile={(file) => console.log('File selected:', file.name)}
+ *   onStartDetecting={() => setIsLoading(true)}
+ *   ocrService="groq"
+ *   groqApiKey="your-api-key"
+ *   lang="fra"
+ *   hint="Drop your document here"
+ *   loadingContent={<Spinner />}
+ * />
+ */
 const ImageInput: React.FC<ImageInputProps> = ({
   onDetect,
   onFile,
-  lang = LanguageCodes.English,
-  className,
+  onError,
+  onStartDetecting,
+  className = "",
   style,
-  pageSegMode = PSM.SINGLE_LINE,
+  pageSegMode = PSM.AUTO,
   OCRMode = OEM.TESSERACT_LSTM_COMBINED,
   hint = "Drag & Drop an image here or click to select a file",
   maxWidth = "400px",
   loadingContent,
+  lang = DEFAULT_TESSERACT_LANG,
   ocrService = "tesseract",
-  googleVisionApiKey,
+  groqApiKey,
 }) => {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const workerRef = useRef<Promise<Worker> | null>(null); // Changed Tesseract.Worker to Worker
-  const [isPending, startOCRTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { performOCR, isOCRPending, detectedText } = useOCR({
+    ocrService,
+    lang,
+    pageSegMode,
+    OCRMode,
+    groqApiKey,
+  });
 
-  // Initialize Tesseract worker only if it's the selected service or default
-  if (ocrService === "tesseract" && !workerRef.current) {
-    // This check should ideally be in a useEffect or a more controlled setup,
-    // but for minimal changes, we ensure it's only called if needed.
-    // Consider moving worker initialization to a useEffect hook based on ocrService.
-     workerRef.current = createWorker(lang, OCRMode);
-  }
-
-
-  const performOCR = (file: File | undefined) => {
-    if (!file) {
-      return;
+  useEffect(() => {
+    if (detectedText && !isOCRPending) {
+      onDetect(detectedText);
     }
+  }, [detectedText, isOCRPending, onDetect]);
 
-    startOCRTransition(async () => {
-      if (onFile) {
-        onFile(file);
+  const handleFileSelect = async (file: File) => {
+    if (!file) return;
+    if (onFile) {
+      onFile(file);
+    }
+    if (onStartDetecting) {
+      onStartDetecting();
+    }
+    try {
+      await performOCR(file);
+    } catch (error) {
+      if (onError) {
+        onError(error as Error);
       }
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-
-      reader.onload = async () => {
-        if (!reader.result) {
-          console.error("File reading failed in ImageInput.");
-          return;
-        }
-        try {
-          if (ocrService === "googleVision") {
-            if (!googleVisionApiKey) {
-              console.error(
-                "Google Vision API key is missing in ImageInput. OCR not attempted."
-              );
-              return;
-            }
-            const base64ImageData = (reader.result as string).split(",")[1];
-            const detectedText = await performGoogleVisionOCR(
-              base64ImageData,
-              googleVisionApiKey
-            );
-            onDetect(detectedText.trim());
-          } else {
-            // Default to Tesseract
-            if (!workerRef.current) {
-                console.error("Tesseract worker not initialized for ImageInput.");
-                return;
-            }
-            const blob = await preProcessImage(reader.result as string);
-            if (!blob) {
-                console.error("Image preprocessing failed in ImageInput.");
-                return;
-            }
-            const ocr = await workerRef.current;
-            ocr.setParameters({
-              tessedit_pageseg_mode: pageSegMode,
-            });
-            const { data: { text } } = await ocr.recognize(blob);
-            if (text) {
-              onDetect(text.trim());
-            } else {
-              console.log("No text detected by Tesseract in ImageInput.");
-            }
-          }
-        } catch (err) {
-          if (ocrService === "googleVision") {
-            console.error("Google Vision API Error in ImageInput:", err);
-          } else {
-            console.error("Tesseract OCR Error in ImageInput:", err);
-          }
-        }
-      };
-      reader.onerror = () => {
-        console.error("Error reading file in ImageInput:", reader.error);
-      };
-    });
+    }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    performOCR(file);
+    if (file) {
+      await handleFileSelect(file);
+    }
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    performOCR(file);
+    if (file) {
+      await handleFileSelect(file);
+    }
   };
 
   const handleClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    fileInputRef.current?.click();
   };
 
   return (
     <div
-      className={`image-input ${className}`}
-      style={{ maxWidth: maxWidth, ...style }}
+      className={`image-input ${className}`.trim()}
+      style={{ maxWidth, ...style }}
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
       onClick={handleClick}
+      data-testid="image-input-container"
+      role="region"
+      aria-label="Image File Input for OCR"
+      tabIndex={0}
     >
       {hint}
       <input
@@ -146,9 +160,11 @@ const ImageInput: React.FC<ImageInputProps> = ({
         onChange={handleFileChange}
         className="image-input-input"
         data-testid="image-input-element"
+        aria-label="Upload image for OCR"
+        aria-describedby="image-input-hint"
       />
-      {isPending && (
-        <div className="image-input-loading">
+      {isOCRPending && (
+        <div className="image-input-loading" role="status" aria-live="polite">
           {loadingContent || "Please Wait..."}
         </div>
       )}

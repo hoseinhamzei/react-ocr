@@ -1,4 +1,4 @@
-export const LanguageCodes = {
+export const TesseractLanguageCodes = {
     Afrikan: "afr",
     Amharic: "amh",
     Arabic: "ara",
@@ -103,6 +103,6 @@ export const LanguageCodes = {
     Yiddish: "yid"
 } as const;
 
-export type LangCode = typeof LanguageCodes[keyof typeof LanguageCodes];
+export type TesseractLangCode = typeof TesseractLanguageCodes[keyof typeof TesseractLanguageCodes];
 
-export type OCRService = 'tesseract' | 'googleVision';
+export type OCRService = 'tesseract' | 'groq';

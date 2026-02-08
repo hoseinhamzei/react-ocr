@@ -11,7 +11,6 @@ html {
 
 header,
 footer {
-  width: 100%;
   text-align: center;
   padding: 16px;
   background-color: #f1f1c9;
@@ -20,4 +19,12 @@ footer {
 
 main {
   padding: 16px;
+  display: grid;
+  gap: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+}
+
+.detected-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
