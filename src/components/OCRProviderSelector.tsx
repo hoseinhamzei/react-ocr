@@ -11,9 +11,9 @@ export const OCRProviderSelector: React.FC<Props> = ({
   onProviderChange,
 }) => {
   return (
-    <div>
-      <div>
-        <label>
+    <div className="ocr-provider-selector">
+      <div className="ocr-provider-options">
+        <label className={selectedProvider === 'tesseract' ? 'ocr-radio selected' : 'ocr-radio'}>
           <input
             type="radio"
             name="ocr-provider"
@@ -23,8 +23,7 @@ export const OCRProviderSelector: React.FC<Props> = ({
           />
           Tesseract
         </label>
-        {" "}
-        <label>
+        <label className={selectedProvider === 'groq' ? 'ocr-radio selected' : 'ocr-radio'}>
           <input
             type="radio"
             name="ocr-provider"
@@ -35,6 +34,14 @@ export const OCRProviderSelector: React.FC<Props> = ({
           Groq
         </label>
       </div>
+      <ul>
+        <li>
+          <strong>Tesseract:</strong> Client-side OCR best for standard, printed text. Low accuracy for handwritten text.
+        </li>
+        <li>
+          <strong>Groq:</strong> Cloud OCR that works well for both images and handwriting.
+        </li>
+      </ul>
     </div>
   );
 };

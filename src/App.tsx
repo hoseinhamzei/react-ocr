@@ -34,66 +34,83 @@ function App() {
     <>
       <header role="banner" aria-label="App Header">
         <h3>React OCR Input Demo</h3>
+        <span className="header-meta">
+          Developed by:{' '}
+          <a
+            href="https://hoseinh.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub profile of Hosein Hamzenejad"
+          >
+            Hosein Hamzenejad
+          </a>
+        </span>
       </header>
+
+      <section aria-label="Library Description" className="intro">
+        <p>
+          This demo showcases the <code>react-ocr</code> library, which provides a{' '}
+          <code>useOCR</code> hook plus ready-made <code>CanvasInput</code> and{' '}
+          <code>ImageInput</code> components for handwriting and image-based OCR in React applications.
+        </p>
+        <p>
+          You can switch between OCR providers, capture text from a drawing canvas or uploaded images, and handle detection results and errors through a simple callback-based API.
+          See the full documentation on{' '}
+          <a
+            href="https://github.com/hoseinhamzei/react-ocr"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub
+          </a>
+          .
+        </p>
+      </section>
 
       <main role="main" aria-label="OCR Input Main Content">
         <div>
-          <div aria-label="OCR Provider Selection" role="radiogroup">
-            <h4>OCR Provider:</h4>
+          <div aria-label="OCR Provider Selection" role="radiogroup" className="provider-row">
+            <h4>OCR Provider</h4>
             <OCRProviderSelector
               selectedProvider={ocrProvider}
               onProviderChange={setOcrProvider}
             />
           </div>
-          <br />
-          <h4>Canvas Input:</h4>
+          <h4>Canvas Input</h4>
           <CanvasInput
             key={`canvas-${ocrProvider}`}
+            aria-label="Handwriting Canvas Input"
             onDetect={handleCanvasDetect}
             onError={handleError}
             lang={TesseractLanguageCodes.English}
             ocrService={ocrProvider}
-            aria-label="Handwriting Canvas Input"
             groqApiKey={import.meta.env.VITE_GROQ_API_KEY || undefined}
           />
-          <br />
-          <br />
-          <h4>Drag and Drop Image File Input:</h4>
+          <div className="spacer" />
+          <h4>Drag and Drop Image File Input</h4>
           <ImageInput
+            aria-label="Image File Input for OCR"
             key={`image-${ocrProvider}`}
             onDetect={handleImageDetect}
             onError={handleError}
             lang={TesseractLanguageCodes.English}
             ocrService={ocrProvider}
-            aria-label="Image File Input for OCR"
             groqApiKey={import.meta.env.VITE_GROQ_API_KEY || undefined}
           />
         </div>
 
         <div>
-          <h4>Detected (Canvas):</h4>
+          <h4>Detected (Canvas)</h4>
           <div aria-live="polite" className="detected-text">
-            {canvasDetected || "No text detected yet."}
+            {canvasDetected || <span className="placeholder">No text detected yet.</span>}
           </div>
 
-          <h4>Detected (Image):</h4>
+          <h4>Detected (Image)</h4>
           <div aria-live="polite" className="detected-text">
-            {imageDetected || "No text detected yet."}
+            {imageDetected || <span className="placeholder">No text detected yet.</span>}
           </div>
         </div>
       </main>
-
-      <footer role="contentinfo" aria-label="App Footer">
-        Developed by:{" "}
-        <a
-          href="https://github.com/hoseinhamzei"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="GitHub profile of Hosein Hamzenejad"
-        >
-          Hosein Hamzenejad
-        </a>
-      </footer>
     </>
   );
 }

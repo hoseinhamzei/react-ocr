@@ -8,12 +8,46 @@ import {
 import { performTesseractOcr } from "../utils/ocr/tesseract";
 import { performGroqOcr } from "../utils/ocr/groq";
 
-interface UseOCRProps {
-  ocrService: OCRService;
+export type CustomOCRHandler = (params: {
+  file: File;
+  base64: string;
+}) => Promise<string>;
+
+export interface UseOCRProps {
+  /**
+   * OCR provider to use for text extraction.
+   * Defaults to `"tesseract"` when not specified.
+   */
+  ocrService?: OCRService;
+  /**
+   * Language code(s) for Tesseract OCR.
+   * Falls back to English when omitted.
+   */
   lang?: TesseractLangCode | TesseractLangCode[];
+  /**
+   * Tesseract Page Segmentation Mode.
+   */
   pageSegMode?: PSM;
+  /**
+   * Tesseract OCR Engine Mode.
+   */
   OCRMode?: OEM;
+  /**
+   * When `true`, enables additional pre-processing optimised for
+   * handwriting drawn on the canvas component.
+   */
+  isCanvasHandwrite?: boolean;
+  /**
+   * API key for the Groq Vision provider. Required when
+   * `ocrService` is set to `"groq"`.
+   */
   groqApiKey?: string;
+
+  /**
+   * Custom OCR handler. Required when `ocrService` is set to `"custom"`.
+   */
+  customOCRHandler?: CustomOCRHandler;
+
 }
 
 const DEFAULT_TESSERACT_LANG = TesseractLanguageCodes.English;
@@ -23,11 +57,13 @@ const DEFAULT_TESSERACT_LANG = TesseractLanguageCodes.English;
  * Supports both Tesseract.js and Groq Vision API for text extraction.
  *
  * @param props - Configuration options for the OCR hook
- * @param props.ocrService - The OCR service to use ('tesseract' or 'groq')
+ * @param props.ocrService - The OCR service to use ('tesseract' | 'groq' | 'custom')
  * @param props.lang - Language code(s) for Tesseract OCR (defaults to English)
  * @param props.pageSegMode - Page segmentation mode for Tesseract (defaults to SINGLE_LINE)
  * @param props.OCRMode - OCR engine mode for Tesseract (defaults to TESSERACT_LSTM_COMBINED)
+ * @param props.isCanvasHandwrite - Performs specific pre-processing if enabled (defaults to false)
  * @param props.groqApiKey - API key for Groq Vision API (required when using 'groq' service)
+ * @param props.customOCRHandler - Custom OCR adapter (required when using 'custom')
  *
  * @returns Object containing:
  * - performOCR: Function to perform OCR on a file and returns detected text
@@ -48,35 +84,39 @@ export const useOCR = ({
   lang = DEFAULT_TESSERACT_LANG,
   pageSegMode = PSM.SINGLE_LINE,
   OCRMode = OEM.TESSERACT_LSTM_COMBINED,
+  isCanvasHandwrite = false,
   groqApiKey,
+  customOCRHandler,
 }: UseOCRProps) => {
   const workerRef = useRef<Promise<Worker> | null>(null);
   const [isOCRPending, setIsOCRPending] = useState(false);
   const [detectedText, setDetectedText] = useState<string>("");
+  const [error, setError] = useState<Error | null>(null);
 
   // Manage Tesseract worker lifecycle
   useEffect(() => {
-    if (ocrService === "tesseract") {
+    const shouldUseTesseract = ocrService === "tesseract";
+
+    const terminateWorker = () => {
+      if (!workerRef.current) return;
+
+      workerRef.current
+        .then((workerInstance) => workerInstance.terminate())
+        .catch(() => undefined);
+
+      workerRef.current = null;
+    };
+
+    if (shouldUseTesseract) {
+      // Lazily create the worker the first time Tesseract is requested.
       if (!workerRef.current) {
         workerRef.current = createWorker(lang, OCRMode);
       }
     } else {
-      // Terminate worker if switching away from tesseract
-      if (workerRef.current) {
-        workerRef.current
-          .then((workerInstance) => workerInstance.terminate())
-          .catch(() => undefined);
-        workerRef.current = null;
-      }
+      terminateWorker();
     }
-    return () => {
-      if (workerRef.current) {
-        workerRef.current
-          .then((workerInstance) => workerInstance.terminate())
-          .catch(() => undefined);
-        workerRef.current = null;
-      }
-    };
+
+    return terminateWorker;
   }, [ocrService, lang, OCRMode]);
 
   /**
@@ -87,71 +127,108 @@ export const useOCR = ({
    */
   const performOCR = async (file: File) => {
     if (!file) {
-      console.error("No File Provided to the performOCR function.");
+      const noFileErr = new Error("No File Provided to the performOCR function.");
+      console.error(noFileErr);
+      setError(noFileErr);
       return;
     }
-    // Capture at invoke time so the async reader callback uses the correct provider
-    // (avoids stale closure when onload runs after re-renders or provider switch)
+
     const service = ocrService;
     const apiKey = groqApiKey;
 
     setIsOCRPending(true);
-    setDetectedText(""); // Clear previous text
+    setDetectedText("");
+    setError(null);
 
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const res = reader.result;
+      // Providers (custom, Groq, Tesseract) work from a base64 image.
+      const base64ImageData = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
 
-          if (!res) {
+        reader.onload = () => {
+          const result = reader.result;
+
+          if (typeof result !== "string") {
+            reject(new Error("File reading failed in useOCR."));
             return;
           }
 
-          if (typeof res !== "string") {
-            throw new Error("File reading failed in useOCR.");
+          const base64 = result.split(",")[1];
+          if (!base64) {
+            reject(new Error("Invalid base64 data in useOCR."));
+            return;
           }
 
-          if (service === "groq") {
-            if (!apiKey) {
-              console.error(
-                "Groq API key is missing in useOCR. OCR not attempted.",
-              );
-              setIsOCRPending(false);
-              return;
-            }
-            const base64ImageData = res.split(",")[1];
-            const text = await performGroqOcr(apiKey, base64ImageData);
-            setDetectedText(text || "");
-            setIsOCRPending(false);
-          } else {
-            // Tesseract
-            const workerPromise = workerRef.current;
-            if (!workerPromise) {
-              console.error("Tesseract worker not initialized.");
-              setIsOCRPending(false);
-              return;
-            }
-            const text = await performTesseractOcr(
-              workerPromise,
-              { result: res } as FileReader,
-              pageSegMode,
-            );
-            setDetectedText(text || "");
-            setIsOCRPending(false);
-          }
-        } catch (err) {
-          console.error("OCR Error in useOCR:", err);
-          setIsOCRPending(false);
+          resolve(base64);
+        };
+
+        reader.onerror = () => {
+          reject(reader.error ?? new Error("FileReader error in useOCR."));
+        };
+
+        reader.readAsDataURL(file);
+      });
+
+      if (service === "custom") {
+        if (!customOCRHandler) {
+          const customHandlerErr = new Error(
+            "customOCRHandler is missing in useOCR. OCR not attempted.",
+          );
+          console.error(customHandlerErr);
+          setError(customHandlerErr);
+          return;
         }
-      };
-      reader.onerror = () => {
-        console.error(reader.error);
-        setIsOCRPending(false);
-      };
-      reader.readAsDataURL(file);
+
+        const text = await customOCRHandler({
+          file,
+          base64: base64ImageData,
+        });
+
+        setDetectedText(text || "");
+        return;
+      }
+
+      if (service === "groq") {
+        if (!apiKey) {
+          const groqKeyErr = new Error(
+            "Groq API key is missing in useOCR. OCR not attempted.",
+          );
+          console.error(groqKeyErr);
+          setError(groqKeyErr);
+          return;
+        }
+
+        const text = await performGroqOcr(apiKey, base64ImageData);
+        setDetectedText(text || "");
+        return;
+      }
+
+      // Tesseract by default
+      const workerPromise = workerRef.current;
+
+      if (!workerPromise) {
+        const workerErr = new Error("Tesseract worker not initialized.");
+        console.error(workerErr);
+        setError(workerErr);
+        return;
+      }
+
+      const fakeReader = { result: `data:image/png;base64,${base64ImageData}` } as FileReader;
+
+      const text = await performTesseractOcr(
+        workerPromise,
+        fakeReader,
+        pageSegMode,
+        isCanvasHandwrite,
+      );
+
+      setDetectedText(text || "");
     } catch (err) {
-      console.error("OCR Error in useOCR:", err);
+      const e = err instanceof Error ? err : new Error(String(err));
+      setError(e);
+      console.error("OCR Error in useOCR:", e);
+      throw err;
+    } finally {
       setIsOCRPending(false);
     }
   };
@@ -160,5 +237,6 @@ export const useOCR = ({
     performOCR,
     isOCRPending,
     detectedText,
+    error,
   };
 };

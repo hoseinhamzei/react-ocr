@@ -105,4 +105,4 @@ export const TesseractLanguageCodes = {
 
 export type TesseractLangCode = typeof TesseractLanguageCodes[keyof typeof TesseractLanguageCodes];
 
-export type OCRService = 'tesseract' | 'groq';
+export type OCRService = 'tesseract' | 'groq' | 'custom';
