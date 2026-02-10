@@ -11,7 +11,7 @@ import {
   TesseractLanguageCodes,
   OCRService,
 } from "../../types/types";
-import { useOCR } from "../../hooks/useOCR";
+import { useOCR, type CustomOCRHandler } from "../../hooks/useOCR";
 
 /**
  * Props for the CanvasInput component
@@ -27,8 +27,9 @@ import { useOCR } from "../../hooks/useOCR";
  * @property {PSM} [pageSegMode=PSM.AUTO] - Tesseract page segmentation mode
  * @property {OEM} [OCRMode=OEM.TESSERACT_LSTM_COMBINED] - Tesseract OCR engine mode
  * @property {ReactElement} [loadingContent] - Custom loading indicator content
- * @property {OCRService} [ocrService="tesseract"] - OCR service to use ("tesseract" or "groq")
+ * @property {OCRService} [ocrService="tesseract"] - OCR service to use ("tesseract", "groq" or "custom")
  * @property {string} [groqApiKey] - API key for Groq service if using groq as ocrService
+ * @property {CustomOCRHandler} [customOCRHandler] - Custom OCR handler when `ocrService` is "custom"
  * @property {number} [lineWidth=2.5] - Width of the drawing line in pixels
  * @property {string} [strokeStyle="black"] - Color of the drawing stroke
  */
@@ -49,6 +50,7 @@ export interface CanvasInputProps {
   groqApiKey?: string;
   lineWidth?: number;
   strokeStyle?: string;
+  customOCRHandler?: CustomOCRHandler;
 }
 
 /**
@@ -98,6 +100,7 @@ const CanvasInput: React.FC<CanvasInputProps> = ({
   groqApiKey,
   lineWidth = 2.5,
   strokeStyle = "black",
+  customOCRHandler,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -107,7 +110,9 @@ const CanvasInput: React.FC<CanvasInputProps> = ({
     lang,
     pageSegMode,
     OCRMode,
+    isCanvasHandwrite: true,
     groqApiKey,
+    customOCRHandler,
   });
 
   const [isDrawing, setIsDrawing] = useState(false);
@@ -207,10 +212,8 @@ const CanvasInput: React.FC<CanvasInputProps> = ({
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    // Only schedule detection if the user actually drew; avoids sending empty canvas
-    // when mouseLeave/touchEnd fires after we've already detected and cleared
+    // Only schedule detection if the user actually drew
     if (hasDrawnRef.current) {
-      // Move detectText above this useCallback to avoid lint error.
       timeoutRef.current = setTimeout(() => detectText(), timeout * 1000);
     }
   }, [timeout]);
@@ -250,7 +253,6 @@ const CanvasInput: React.FC<CanvasInputProps> = ({
           onError(err as Error);
         }
       }
-      // Remove handleClear() from finally
     }
   }, [performOCR, handleClear, onStartDetecting, onError]);
 

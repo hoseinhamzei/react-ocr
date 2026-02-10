@@ -1,6 +1,6 @@
-import React, { ReactElement, useRef, useEffect } from "react";
+import React, { ReactElement, useRef, useEffect, useCallback } from "react";
 import { OEM, PSM } from "tesseract.js";
-import { useOCR } from "../../hooks/useOCR";
+import { useOCR, type CustomOCRHandler } from "../../hooks/useOCR";
 import {
   OCRService,
   TesseractLangCode,
@@ -23,6 +23,7 @@ import {
  * @property {string} [maxWidth="400px"] - Maximum width of the component (CSS value)
  * @property {ReactElement} [loadingContent] - Custom loading indicator content
  * @property {string} [groqApiKey] - API key for Groq service if using groq as ocrService
+ * @property {CustomOCRHandler} [customOCRHandler] - Custom OCR handler when `ocrService` is "custom"
  */
 export interface ImageInputProps {
   onDetect: (detectedText: string) => void;
@@ -39,6 +40,7 @@ export interface ImageInputProps {
   maxWidth?: string;
   loadingContent?: ReactElement;
   groqApiKey?: string;
+  customOCRHandler?: CustomOCRHandler;
 }
 
 const DEFAULT_TESSERACT_LANG = TesseractLanguageCodes.English;
@@ -88,6 +90,7 @@ const ImageInput: React.FC<ImageInputProps> = ({
   lang = DEFAULT_TESSERACT_LANG,
   ocrService = "tesseract",
   groqApiKey,
+  customOCRHandler,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { performOCR, isOCRPending, detectedText } = useOCR({
@@ -96,6 +99,7 @@ const ImageInput: React.FC<ImageInputProps> = ({
     pageSegMode,
     OCRMode,
     groqApiKey,
+    customOCRHandler,
   });
 
   useEffect(() => {
@@ -104,47 +108,59 @@ const ImageInput: React.FC<ImageInputProps> = ({
     }
   }, [detectedText, isOCRPending, onDetect]);
 
-  const handleFileSelect = async (file: File) => {
-    if (!file) return;
-    if (onFile) {
-      onFile(file);
-    }
-    if (onStartDetecting) {
-      onStartDetecting();
-    }
-    try {
-      await performOCR(file);
-    } catch (error) {
-      if (onError) {
-        onError(error as Error);
+  const handleFileSelect = useCallback(
+    async (file: File | null | undefined) => {
+      if (!file) return;
+
+      if (onFile) {
+        onFile(file);
       }
-    }
-  };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+      if (onStartDetecting) {
+        onStartDetecting();
+      }
+
+      try {
+        await performOCR(file);
+      } catch (error) {
+        if (onError) {
+          onError(error as Error);
+        }
+      }
+    },
+    [onFile, onStartDetecting, onError, performOCR],
+  );
+
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0] ?? null;
       await handleFileSelect(file);
-    }
-  };
+    },
+    [handleFileSelect],
+  );
 
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback(
+    async (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0] ?? null;
+      await handleFileSelect(file);
+    },
+    [handleFileSelect],
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      await handleFileSelect(file);
-    }
-  };
+  }, []);
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     fileInputRef.current?.click();
-  };
+  }, []);
 
   return (
     <div
       className={`image-input ${className}`.trim()}
       style={{ maxWidth, ...style }}
-      onDragOver={(e) => e.preventDefault()}
+      onDragOver={handleDragOver}
       onDrop={handleDrop}
       onClick={handleClick}
       data-testid="image-input-container"
@@ -152,7 +168,7 @@ const ImageInput: React.FC<ImageInputProps> = ({
       aria-label="Image File Input for OCR"
       tabIndex={0}
     >
-      {hint}
+      <span id="image-input-hint">{hint}</span>
       <input
         ref={fileInputRef}
         type="file"
