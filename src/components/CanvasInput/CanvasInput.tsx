@@ -152,17 +152,20 @@ const CanvasInput: React.FC<CanvasInputProps> = ({
       if (!canvas) return { x: 0, y: 0 };
 
       const rect = canvas.getBoundingClientRect();
+      // Account for the difference between canvas resolution and display size
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
 
       if ("touches" in e) {
         const touch = e.touches[0];
         return {
-          x: touch.clientX - rect.left,
-          y: touch.clientY - rect.top,
+          x: (touch.clientX - rect.left) * scaleX,
+          y: (touch.clientY - rect.top) * scaleY,
         };
       } else {
         return {
-          x: e.nativeEvent.offsetX,
-          y: e.nativeEvent.offsetY,
+          x: e.nativeEvent.offsetX * scaleX,
+          y: e.nativeEvent.offsetY * scaleY,
         };
       }
     },
