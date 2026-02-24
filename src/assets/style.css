@@ -25,13 +25,15 @@ header h3 {
   margin: 0 0 0.5rem 0;
   letter-spacing: 0.01em;
 }
+a {
+  transition: color 0.2s;
+}
 header a {
   color: #fff;
   text-decoration: underline;
   font-weight: 500;
-  transition: color 0.2s;
 }
-header a:hover {
+a:hover {
   color: #ffe082;
 }
 

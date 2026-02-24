@@ -39,15 +39,14 @@ The package barrel imports the component CSS automatically, so no extra CSS impo
 
 ### Using the `useOCR` Hook for Custom Implementations
 
-for custom UI implementation use `useOCR` hook directly:
+For custom UI implementation use `useOCR` hook directly:
 
 ```tsx
-import React, { useState } from "react";
+import React from "react";
 import { useOCR } from "@hoseinh/react-ocr";
 
 export default function CustomOCRComponent() {
-  const [result, setResult] = useState("");
-  const { performOCR, isOCRPending, error } = useOCR({
+  const { performOCR, isOCRPending, detectedText, error } = useOCR({
     ocrService: "tesseract",
   });
 
@@ -63,7 +62,7 @@ export default function CustomOCRComponent() {
       <input type="file" accept="image/*" onChange={handleFileUpload} />
       {isOCRPending && <p>Processing...</p>}
       {error && <p style={{ color: "red" }}>Error: {error.message}</p>}
-      <textarea value={result} onChange={(e) => setResult(e.target.value)} />
+      {detectedText && <p><strong>Result:</strong> {detectedText}</p>}
     </div>
   );
 }

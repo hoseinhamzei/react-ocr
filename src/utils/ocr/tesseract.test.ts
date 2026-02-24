@@ -15,6 +15,53 @@ describe("performTesseractOcr", () => {
       setParameters: jest.fn().mockResolvedValue(undefined),
       recognize: jest.fn(),
     });
+
+    // Mock Image to make onload fire immediately in tests
+    const mockImage = {
+      onload: null as any,
+      onerror: null as any,
+      src: "",
+      width: 100,
+      height: 100,
+    };
+
+    global.Image = jest.fn().mockImplementation(() => {
+      // Trigger onload asynchronously when src is set
+      setTimeout(() => {
+        if (mockImage.onload) {
+          mockImage.onload();
+        }
+      }, 0);
+      return mockImage;
+    }) as any;
+
+    // Mock document.createElement for canvas
+    const mockCanvas = {
+      width: 0,
+      height: 0,
+      getContext: jest.fn().mockReturnValue({
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: "high",
+        drawImage: jest.fn(),
+        getImageData: jest.fn().mockReturnValue({
+          data: new Uint8ClampedArray(400), // 100x100 image with RGBA
+        }),
+        putImageData: jest.fn(),
+      }),
+      toDataURL: jest.fn().mockReturnValue("data:image/png;base64,mockprocessed"),
+    };
+
+    const originalCreateElement = document.createElement.bind(document);
+    jest.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      if (tagName === 'canvas') {
+        return mockCanvas as any;
+      }
+      return originalCreateElement(tagName);
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it("should return trimmed recognized text", async () => {

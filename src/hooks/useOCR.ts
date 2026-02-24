@@ -213,11 +213,11 @@ export const useOCR = ({
         return;
       }
 
-      const fakeReader = { result: `data:image/png;base64,${base64ImageData}` } as FileReader;
+      const reader = { result: `data:image/png;base64,${base64ImageData}` } as FileReader;
 
       const text = await performTesseractOcr(
         workerPromise,
-        fakeReader,
+        reader,
         pageSegMode,
         isCanvasHandwrite,
       );
