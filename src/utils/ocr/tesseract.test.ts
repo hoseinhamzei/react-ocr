@@ -149,12 +149,12 @@ describe("performTesseractOcr", () => {
     await performTesseractOcr(
       mockWorker,
       mockFileReader,
-      PSM.SINGLE_LINE,
+      PSM.AUTO,
       false,
     );
 
     const setParametersCall = workerInstance.setParameters.mock.calls[0][0];
-    expect(setParametersCall.tessedit_pageseg_mode).toBe(PSM.SINGLE_LINE);
+    expect(setParametersCall.tessedit_pageseg_mode).toBe(PSM.AUTO);
     expect(setParametersCall.preserve_interword_spaces).toBe("1");
   });
 

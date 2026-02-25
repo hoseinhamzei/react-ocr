@@ -17,13 +17,14 @@ npm install @hoseinh/react-ocr
 yarn add @hoseinh/react-ocr
 ```
 
-Note: React and ReactDOM are peer dependencies — ensure your project already depends on React.
+Note: React and ReactDOM are peer dependencies - ensure your project already depends on React.
 
 ## Quick Start
 
 ```tsx
 import React from "react";
 import { CanvasInput, ImageInput } from "@hoseinh/react-ocr";
+import "@hoseinh/react-ocr/dist/react-ocr.css";
 
 export default function App() {
   return (
@@ -35,7 +36,7 @@ export default function App() {
 }
 ```
 
-The package barrel imports the component CSS automatically, so no extra CSS import is required for defaults.
+**Note:** Import the CSS file to use the minimal default styles. You can omit this import if you prefer to style the components yourself.
 
 ### Using the `useOCR` Hook for Custom Implementations
 
@@ -44,6 +45,7 @@ For custom UI implementation use `useOCR` hook directly:
 ```tsx
 import React from "react";
 import { useOCR } from "@hoseinh/react-ocr";
+import "@hoseinh/react-ocr/dist/react-ocr.css";
 
 export default function CustomOCRComponent() {
   const { performOCR, isOCRPending, detectedText, error } = useOCR({
@@ -70,9 +72,9 @@ export default function CustomOCRComponent() {
 
 ## OCR Backends
 
-- Tesseract.js — on-device browser OCR (default)
-- [Groq](https://groq.com/) Vision — cloud-based LLM vision
-- Custom — provide a `customOCRHandler` to integrate any backend
+- Tesseract.js - on-device browser OCR (default)
+- [Groq](https://groq.com/) Vision - cloud-based LLM vision
+- Custom - provide a `customOCRHandler` to integrate any backend
 
 See detailed examples in `docs/` (imageInput.md, canvasInput.md, useOCR.md).
 

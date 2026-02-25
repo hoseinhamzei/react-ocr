@@ -75,14 +75,14 @@ const DEFAULT_TESSERACT_LANG = TesseractLanguageCodes.English;
  * const { performOCR, isOCRPending, detectedText } = useOCR({
  *   ocrService: 'tesseract',
  *   lang: 'eng',
- *   pageSegMode: PSM.SINGLE_LINE
+ *   pageSegMode: PSM.AUTO
  * });
  * ```
  */
 export const useOCR = ({
   ocrService = "tesseract",
   lang = DEFAULT_TESSERACT_LANG,
-  pageSegMode = PSM.SINGLE_LINE,
+  pageSegMode = PSM.AUTO,
   OCRMode = OEM.TESSERACT_LSTM_COMBINED,
   isCanvasHandwrite = false,
   groqApiKey,

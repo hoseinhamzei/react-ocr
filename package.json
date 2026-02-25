@@ -1,24 +1,62 @@
 {
   "name": "@hoseinh/react-ocr",
   "version": "0.2.0",
+  "description": "React components and hooks for OCR (Optical Character Recognition) with support for Tesseract.js, Groq Vision, and custom handlers. Includes CanvasInput for handwriting and ImageInput for image-based text extraction.",
   "type": "module",
+  "keywords": [
+    "react",
+    "ocr",
+    "tesseract",
+    "handwriting",
+    "text-recognition",
+    "image-to-text",
+    "groq",
+    "vision",
+    "canvas",
+    "react-component",
+    "typescript"
+  ],
+  "author": "Hosein",
+  "license": "MIT",
+  "homepage": "https://react-ocr-demo.hoseinh.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hoseinh/react-ocr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hoseinh/react-ocr/issues"
+  },
   "scripts": {
     "dev": "vite --host",
-    "build": "tsc -b && vite build",
-    "prepare": "npm run build",
+    "build": "vite build",
+    "prepublishOnly": "npm run build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "jest"
   },
-  "main": "dist/index.cjs.js",
-  "module": "dist/index.es.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.cjs.js"
+    },
+    "./dist/react-ocr.css": "./dist/react-ocr.css",
+    "./package.json": "./package.json"
+  },
+  "sideEffects": [
+    "*.css"
+  ],
   "files": [
     "dist",
     "README.md",
-    "docs",
-    "src/components/index.css"
+    "LICENSE"
   ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "publishConfig": {
     "access": "public"
   },
