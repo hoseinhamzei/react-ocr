@@ -22,7 +22,7 @@ Return value:
 |---|---|---|---|
 | `ocrService?` | `'tesseract' \| 'groq' \| 'custom'` | `'tesseract'` | Which provider to use. `'tesseract'` uses Tesseract.js, `'groq'` uses Groq Vision API, `'custom'` calls a user-provided handler. |
 | `lang?` | `TesseractLangCode \| TesseractLangCode[]` | `TesseractLanguageCodes.English` | Language code(s) for Tesseract recognition. |
-| `pageSegMode?` | `PSM` | `PSM.SINGLE_LINE` (hook default) | Tesseract Page Segmentation Mode. |
+| `pageSegMode?` | `PSM` | `PSM.AUTO` (hook default) | Tesseract Page Segmentation Mode. |
 | `OCRMode?` | `OEM` | `OEM.TESSERACT_LSTM_COMBINED` | Tesseract OCR Engine Mode. |
 | `isCanvasHandwrite?` | `boolean` | `false` | Enables handwriting-specific preprocessing (higher DPI, binarization). Useful when OCRing the `CanvasInput`. |
 | `groqApiKey?` | `string ` | `undefined` | API key required when `ocrService` is `'groq'`. |

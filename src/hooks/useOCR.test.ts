@@ -3,7 +3,7 @@
  * 
  */
 
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { useOCR, CustomOCRHandler } from './useOCR';
 import { createWorker, OEM } from 'tesseract.js';
 import { performTesseractOcr } from '../utils/ocr/tesseract';
@@ -77,7 +77,9 @@ describe('useOCR Hook', () => {
     const { result } = renderHook(() => useOCR({ ocrService: 'tesseract' }));
     const mockFile = new File(['dummy'], 'test.png', { type: 'image/png' });
 
-    await result.current.performOCR(mockFile);
+    await act(async () => {
+      await result.current.performOCR(mockFile);
+    });
 
     await waitFor(() => {
       expect(result.current.detectedText).toBe(mockText);
@@ -100,7 +102,9 @@ describe('useOCR Hook', () => {
     );
 
     const mockFile = new File(['dummy'], 'test.png', { type: 'image/png' });
-    await result.current.performOCR(mockFile);
+    await act(async () => {
+      await result.current.performOCR(mockFile);
+    });
 
     await waitFor(() => {
       expect(result.current.detectedText).toBe(mockText);
@@ -120,7 +124,9 @@ describe('useOCR Hook', () => {
     );
 
     const mockFile = new File(['dummy'], 'test.png', { type: 'image/png' });
-    await result.current.performOCR(mockFile);
+    await act(async () => {
+      await result.current.performOCR(mockFile);
+    });
 
     await waitFor(() => {
       expect(result.current.detectedText).toBe('Custom result');
@@ -143,10 +149,15 @@ describe('useOCR Hook', () => {
     const { result } = renderHook(() => useOCR({ ocrService: 'tesseract' }));
     const mockFile = new File(['dummy'], 'test.png', { type: 'image/png' });
 
-    const ocrPromise = result.current.performOCR(mockFile);
+    let ocrPromise: Promise<void>;
+    act(() => {
+      ocrPromise = result.current.performOCR(mockFile);
+    });
 
     await waitFor(() => expect(result.current.isOCRPending).toBe(true));
-    await ocrPromise;
+    await act(async () => {
+      await ocrPromise;
+    });
     await waitFor(() => expect(result.current.isOCRPending).toBe(false));
   });
 
@@ -160,7 +171,9 @@ describe('useOCR Hook', () => {
     const { result } = renderHook(() => useOCR({ ocrService: 'groq' }));
     const mockFile = new File(['dummy'], 'test.png', { type: 'image/png' });
 
-    await result.current.performOCR(mockFile);
+    await act(async () => {
+      await result.current.performOCR(mockFile);
+    });
 
     await waitFor(() => {
       expect(result.current.error?.message).toContain('Groq API key is missing');
@@ -182,7 +195,9 @@ describe('useOCR Hook', () => {
     const { result } = renderHook(() => useOCR({ ocrService: 'tesseract' }));
     const mockFile = new File(['dummy'], 'test.png', { type: 'image/png' });
 
-    await expect(result.current.performOCR(mockFile)).rejects.toThrow('OCR failed');
+    await act(async () => {
+      await expect(result.current.performOCR(mockFile)).rejects.toThrow('OCR failed');
+    });
 
     await waitFor(() => {
       expect(result.current.error).toBe(ocrError);
