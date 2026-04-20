@@ -4,6 +4,7 @@ import dts from "vite-plugin-dts";
 import path from "path";
 
 export default defineConfig({
+  base: '/react-ocr/',
   plugins: [
     react(),
     // dts generates .d.ts files for TypeScript support
