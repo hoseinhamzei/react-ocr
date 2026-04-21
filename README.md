@@ -5,7 +5,7 @@
 
 React components and a hook to perform OCR on images and handwriting using Tesseract.js, Groq Vision, or a custom OCR handler.
 
-Demo: [react-ocr-demo.hoseinh.com](https://hoseinhamzei.github.io/react-ocr/)
+Demo: [https://hoseinhamzei.github.io/react-ocr/](https://hoseinhamzei.github.io/react-ocr/)
 
 ## Installation
 
