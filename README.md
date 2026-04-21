@@ -1,11 +1,11 @@
 ﻿# @hoseinh/react-ocr
 
 [![npm version](https://img.shields.io/npm/v/%40hoseinh%2Freact-ocr.svg)](https://www.npmjs.com/package/%40hoseinh%2Freact-ocr)
-[![npm downloads](https://img.shields.io/npm/dm/%40hoseinh%2Freact-ocr.svg)](https://www.npmjs.com/package/%40hoseinh%2Freact-ocr)
+[![npm downloads](https://img.shields.io/npm/dt/%40hoseinh%2Freact-ocr.svg)](https://www.npmjs.com/package/%40hoseinh%2Freact-ocr)
 
 React components and a hook to perform OCR on images and handwriting using Tesseract.js, Groq Vision, or a custom OCR handler.
 
-Demo: [react-ocr-demo.hoseinh.com](https://hoseinhamzei.github.io/react-ocr/)
+Demo: [https://hoseinhamzei.github.io/react-ocr/](https://hoseinhamzei.github.io/react-ocr/)
 
 ## Installation
 
